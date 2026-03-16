@@ -344,7 +344,7 @@ function ToggleAutoBat(state)
     autoBatEnabled = state
 end
 --------------------------------------------------
--- AUTO LEFT / RIGHT (DIFFERENT SPEEDS)
+-- AUTO STEAL PATH SYSTEM (L1 -> L2 -> R1 -> R2)
 --------------------------------------------------
 
 local GO_SPEED = 57
@@ -356,62 +356,34 @@ local POSITION_L2 = Vector3.new(-483.12, -4.95, 94.80)
 local POSITION_R1 = Vector3.new(-476.16, -6.52, 25.62)
 local POSITION_R2 = Vector3.new(-483.04, -5.09, 23.14)
 
+local autoPathEnabled = false
 local autoMoveConn
-local autoLeft = false
-local autoRight = false
+local phase = 1
 
-local autoLeftPhase = 1
-local autoRightPhase = 1
+local positions = {
+    POSITION_L1,
+    POSITION_L2,
+    POSITION_R1,
+    POSITION_R2
+}
 
-local function startAutoMove()
+local function startAutoPath()
 
     if autoMoveConn then return end
 
     autoMoveConn = RunService.Heartbeat:Connect(function()
+
+        if not autoPathEnabled then return end
 
         local char = lp.Character
         if not char then return end
 
         local root = char:FindFirstChild("HumanoidRootPart")
         local hum = char:FindFirstChildOfClass("Humanoid")
+
         if not root or not hum then return end
 
-        local target
-        local speed
-
-        --------------------------------------------------
-        -- AUTO LEFT
-        --------------------------------------------------
-
-        if autoLeft then
-
-            if autoLeftPhase == 1 then
-                target = POSITION_L1
-                speed = GO_SPEED
-            else
-                target = POSITION_L2
-                speed = RETURN_SPEED
-            end
-
-        --------------------------------------------------
-        -- AUTO RIGHT
-        --------------------------------------------------
-
-        elseif autoRight then
-
-            if autoRightPhase == 1 then
-                target = POSITION_R1
-                speed = GO_SPEED
-            else
-                target = POSITION_R2
-                speed = RETURN_SPEED
-            end
-
-        else
-            return
-        end
-
-        --------------------------------------------------
+        local target = positions[phase]
 
         local direction = (target - root.Position)
         local move = Vector3.new(direction.X,0,direction.Z).Unit
@@ -419,21 +391,30 @@ local function startAutoMove()
         hum:Move(move,false)
 
         root.AssemblyLinearVelocity = Vector3.new(
-            move.X * speed,
+            move.X * GO_SPEED,
             root.AssemblyLinearVelocity.Y,
-            move.Z * speed
+            move.Z * GO_SPEED
         )
 
-        --------------------------------------------------
-        -- SWITCH PHASE
-        --------------------------------------------------
-
+        -- reached point
         if (target - root.Position).Magnitude < 2 then
 
-            if autoLeft then
-                autoLeftPhase = (autoLeftPhase == 1) and 2 or 1
-            elseif autoRight then
-                autoRightPhase = (autoRightPhase == 1) and 2 or 1
+            -- when reaching L2 -> steal
+            if phase == 2 then
+
+                local prompt = findNearestSteal(root)
+                if prompt then
+                    pcall(fireproximityprompt,prompt)
+                    task.wait(0.1)
+                    pcall(fireproximityprompt,prompt)
+                end
+
+            end
+
+            phase += 1
+
+            if phase > 4 then
+                phase = 1
             end
 
         end
@@ -442,28 +423,18 @@ local function startAutoMove()
 
 end
 
+function ToggleAutoPath(state)
 
-function ToggleAutoLeft(state)
-
-    autoLeft = state
-    autoRight = false
-    autoLeftPhase = 1
+    autoPathEnabled = state
+    phase = 1
 
     if state then
-        startAutoMove()
-    end
-
-end
-
-
-function ToggleAutoRight(state)
-
-    autoRight = state
-    autoLeft = false
-    autoRightPhase = 1
-
-    if state then
-        startAutoMove()
+        startAutoPath()
+    else
+        if autoMoveConn then
+            autoMoveConn:Disconnect()
+            autoMoveConn = nil
+        end
     end
 
 end

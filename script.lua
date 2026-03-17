@@ -16,8 +16,7 @@ local SPEED_VALUE = 57
 -- AUTO MOVE SETTINGS
 local NORMAL_SPEED = 50
 
-local POSITION_L1 = Vector3.new(-10,0,20)
-local POSITION_L2 = Vector3.new(-20,0,40)
+local POSITION_L1 = Vector3.new(-10,0,20)local POSITION_L2 = Vector3.new(-20,0,40)
 
 local POSITION_R1 = Vector3.new(10,0,20)
 local POSITION_R2 = Vector3.new(20,0,40)
